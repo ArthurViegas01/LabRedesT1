@@ -5,7 +5,7 @@ import java.util.*;
 public class Servidor {
     private DatagramSocket socket;
     private byte[] buffer = new byte[1024];
-    private List<Endereco> clientes = new ArrayList<>();
+    private List<Clientes> clientes = new ArrayList<>();
     private int portaServidor;
 
     public Servidor(int portaServidor) {
@@ -25,37 +25,66 @@ public class Servidor {
                 socket.receive(packet);
                 InetAddress enderecoCliente = packet.getAddress();
                 int portaCliente = packet.getPort();
-                Endereco endereco = new Endereco(enderecoCliente, portaCliente);
+                String mensagem = new String(packet.getData(), 0, packet.getLength());
+                Protocolo protocolo = new Protocolo(mensagem);
+                Protocolo resposta = null;
 
-                if (!clientes.contains(endereco)) {
-                    clientes.add(endereco);
+                Clientes cliente = new Clientes(enderecoCliente, portaCliente,protocolo.getUsernameOrigem());
+
+                switch (protocolo.getTipo()) {
+                    case 'R':
+                    if (!clientes.contains(cliente)) {
+                        clientes.add(cliente);
+                    }
+                    System.out.println("Cliente registrado: " + cliente.getUsername());
+                    break;
+
+                    case 'M':
+                    resposta = new Protocolo('M', protocolo.getUsernameOrigem(), protocolo.getUsernameDestino(), protocolo.getMensagem());
+                    enviarMensagem(resposta);
+                    System.out.println("Mensagem enviada para " + resposta.getUsernameDestino());
+                    break;
+
+                    case 'L':
+                    StringBuilder usernames = new StringBuilder();
+                    for (Clientes c : clientes){
+                        if(!c.getUsername().equals(protocolo.getUsernameOrigem())){
+                            usernames.append(c.getUsername()).append(",");;
+                        }
+                    }
+                    resposta = new Protocolo('L', "servidor", protocolo.getUsernameOrigem(), usernames.toString());
+                    enviarMensagem(resposta);
+                    System.out.println("Lista de usuários enviada para " + resposta.getUsernameDestino());
+
+                    break;
+
+                    default:
+                        break;
                 }
 
-                String mensagem = new String(packet.getData(), 0, packet.getLength());
-                System.out.println("Mensagem recebida de " + enderecoCliente + ":" + portaCliente + ": " + mensagem);
-
-                // Enviar a mensagem recebida para todos os clientes
-                enviarMensagemParaTodos(mensagem, endereco);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void enviarMensagemParaTodos(String mensagem, Endereco enderecoOrigem) {
+    private void enviarMensagem(Protocolo protocoloDestino) {
         try {
-            String mensagemCompleta = (enderecoOrigem.toString() + ": " + mensagem).substring(1);
-            byte[] buffer = mensagemCompleta.getBytes();
-            for (Endereco cliente : clientes) {
-                
-                if (!cliente.equals(enderecoOrigem)) {
-                    InetAddress endereco = cliente.getEnderecoCliente();
-                    int porta = cliente.getPortaCliente();
-                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, endereco, porta);
-                    socket.send(packet);
-                    System.out.println("Mensagem enviada para " + cliente.getEnderecoCliente() + ":" + cliente.getPortaCliente() + ": " + mensagem);
+
+            byte[] buffer = protocoloDestino.toString().getBytes();
+            Clientes cliente = null;
+            for (Clientes c : clientes) {
+                if (c.getUsername().equals(protocoloDestino.getUsernameDestino())) {
+                    cliente = c;
+                    break;
                 }
             }
+            InetAddress enderecoClienteDestino = cliente.getEnderecoCliente();
+            int portaClienteDestino = cliente.getPortaCliente();
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, enderecoClienteDestino, portaClienteDestino);
+            socket.send(packet);
+            System.out.println("Mensagem enviada para " + cliente.getEnderecoCliente().toString().substring(1) + ":" + cliente.getPortaCliente());
+        
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -1,13 +1,15 @@
 import java.net.InetAddress;
 import java.util.Objects;
 
-public class Endereco {
+public class Clientes {
     private InetAddress enderecoCliente;
     private int portaCliente;
+    private String username; // novo atributo
 
-    public Endereco(InetAddress enderecoCliente, int portaCliente) {
+    public Clientes(InetAddress enderecoCliente, int portaCliente, String username) {
         this.enderecoCliente = enderecoCliente;
         this.portaCliente = portaCliente;
+        this.username = username; 
     }
 
     public InetAddress getEnderecoCliente() {
@@ -18,11 +20,15 @@ public class Endereco {
         return portaCliente;
     }
 
+    public String getUsername() { 
+        return username;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Endereco endereco = (Endereco) o;
+        Clientes endereco = (Clientes) o;
         return portaCliente == endereco.portaCliente &&
                 Objects.equals(enderecoCliente, endereco.enderecoCliente);
     }
