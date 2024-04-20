@@ -1,4 +1,8 @@
-public class Protocolo {
+import java.io.Serializable;
+
+public class Protocolo implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private char tipo;
     private String usernameOrigem;
     private String usernameDestino;
@@ -10,13 +14,14 @@ public class Protocolo {
         usernameDestino = protocolo.substring(protocolo.indexOf('|') + 1, protocolo.indexOf('|', protocolo.indexOf('|') + 1));
         mensagem = protocolo.substring(protocolo.indexOf('|', protocolo.indexOf('|') + 1) + 1);
     }
+
     public Protocolo(char tipo, String username, String usernameDestino, String mensagem) {
         this.tipo = tipo;
         this.usernameOrigem = username;
         this.usernameDestino = usernameDestino;
         this.mensagem = mensagem;
     }
-        
+
     public char getTipo() {
         return tipo;
     }
@@ -48,10 +53,9 @@ public class Protocolo {
     public void setMensagem(String mensagem) {
         this.mensagem = mensagem;
     }
-    
+
     @Override
     public String toString() {
         return tipo + usernameOrigem +"|"+ usernameDestino +"|" + mensagem;
     }
-
 }

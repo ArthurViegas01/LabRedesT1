@@ -3,13 +3,11 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
-import java.util.Arrays;
 
 public class ClienteGUI {
-    private DatagramSocket socket;
-    private InetAddress enderecoServidor;
-    private int portaServidor;
-    private int portaCliente;
+    private Socket socket;
+    private ObjectOutputStream saida;
+    private ObjectInputStream entrada;
     private String username;
     private String[] usuariosLista;
 
@@ -19,15 +17,20 @@ public class ClienteGUI {
 
     public ClienteGUI(String enderecoServidor, int portaServidor, int portaCliente, String username) {
         try {
-            this.enderecoServidor = InetAddress.getByName(enderecoServidor);
-            this.portaServidor = portaServidor;
-            this.portaCliente = portaCliente;
             this.username = username;
-            socket = new DatagramSocket(portaCliente);
+            socket = new Socket(enderecoServidor, portaServidor);
+            saida = new ObjectOutputStream(socket.getOutputStream());
+            entrada = new ObjectInputStream(socket.getInputStream());
+            inicializarInterface();
+            enviarMensagemInicial();
+            Thread threadReceberMensagens = new Thread(this::receberMensagens);
+            threadReceberMensagens.start();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
+    private void inicializarInterface() {
         JFrame frame = new JFrame("Chat UDP - " + username);
         frame.setSize(400, 300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -71,63 +74,56 @@ public class ClienteGUI {
         frame.add(campoEnviar, BorderLayout.SOUTH);
 
         frame.setVisible(true);
-
-        Thread threadReceberMensagens = new Thread(() -> {
-            while (true) {
-                String mensagemRecebida = receberMensagem();
-                if (mensagemRecebida != null) {
-                    processarMensagemRecebida(mensagemRecebida);
-                }
-            }
-        });
-        threadReceberMensagens.start();
     }
 
     private void enviarMensagem(String mensagem, String destinatario) {
-        Protocolo mensagemEnviar = new Protocolo('M', username, destinatario, mensagem);
-        enviarMensagem(mensagemEnviar.toString());
-    }
-
-    private void enviarMensagem(String mensagem) {
         try {
-            byte[] buffer = mensagem.getBytes();
-            Protocolo protocolo = new Protocolo(mensagem);
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, enderecoServidor, portaServidor);
-            socket.send(packet);
+            Protocolo protocolo = new Protocolo('M', username, destinatario, mensagem);
             if(protocolo.getTipo() == 'M'){
                 atualizarAreaMensagens("Mensagem enviada: " + protocolo.getMensagem());
             }
+            saida.writeObject(protocolo);
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private void enviarMensagemListar() {
-        Protocolo mensagemListar = new Protocolo('L', username, "servidor", "");
-        enviarMensagem(mensagemListar.toString());
-    }
-
-    private String receberMensagem() {
         try {
-            byte[] buffer = new byte[1024];
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-            socket.receive(packet);
-            return new String(packet.getData(), 0, packet.getLength());
+            Protocolo protocolo = new Protocolo('L', username, "servidor", "");
+            saida.writeObject(protocolo);
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
         }
     }
 
-    private void processarMensagemRecebida(String mensagemRecebida) {
-        Protocolo protocolo = new Protocolo(mensagemRecebida);
+    private void enviarMensagemInicial() {
+        try {
+            Protocolo protocolo = new Protocolo('R', username, "servidor", "");
+            saida.writeObject(protocolo);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void receberMensagens() {
+        try {
+            while (true) {
+                Protocolo protocolo = (Protocolo) entrada.readObject();
+                processarMensagemRecebida(protocolo);
+                
+            }
+        } catch (EOFException e) {
+            System.out.println("Conexão encerrada pelo servidor.");
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void processarMensagemRecebida(Protocolo protocolo) {
         if (protocolo.getTipo() == 'L') {
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    exibirListaUsuarios(protocolo.getMensagem());
-                }
-            });
+            SwingUtilities.invokeLater(() -> exibirListaUsuarios(protocolo.getMensagem()));
         } else if (protocolo.getTipo() == 'M') {
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
@@ -137,18 +133,13 @@ public class ClienteGUI {
                 }
             });
         } else {
-            atualizarAreaMensagens("Mensagem recebida do servidor: " + mensagemRecebida);
+            SwingUtilities.invokeLater(() -> atualizarAreaMensagens("Mensagem recebida do servidor: " + protocolo.toString()));
         }
     }
 
     private void exibirListaUsuarios(String mensagem) {
         usuariosLista = mensagem.split(",");
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                listaUsuarios.setListData(usuariosLista);
-            }
-        });
+        SwingUtilities.invokeLater(() -> listaUsuarios.setListData(usuariosLista));
     }
 
     private void atualizarAreaMensagens(String mensagem) {
@@ -156,26 +147,20 @@ public class ClienteGUI {
     }
 
     public void fecharConexao() {
-        socket.close();
-    }
-    public static void main(String[] args) {
-        if (args.length != 2) {
-            System.out.println("Uso: java ClienteGUI <porta> <username>");
-            return;
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
+
+    public static void main(String[] args) {
 
         String enderecoServidor = "localhost";
         int portaServidor = 12345;
-        int portaCliente = Integer.parseInt(args[0]);
-        String username = args[1];
+        int portaCliente = 36459;
+        String username = "Maria";
 
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                Protocolo mensagemInicial = new Protocolo('R', username, "servidor", "");
-                ClienteGUI cliente = new ClienteGUI(enderecoServidor, portaServidor, portaCliente, username);
-                cliente.enviarMensagem(mensagemInicial.toString());
-            }
-        });
+        SwingUtilities.invokeLater(() -> new ClienteGUI(enderecoServidor, portaServidor, portaCliente, username));
     }
 }

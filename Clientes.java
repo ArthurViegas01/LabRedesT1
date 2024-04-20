@@ -1,15 +1,18 @@
 import java.net.InetAddress;
 import java.util.Objects;
+import java.io.*;
 
 public class Clientes {
     private InetAddress enderecoCliente;
     private int portaCliente;
-    private String username; // novo atributo
+    private String username;
+    private ObjectOutputStream saida; // novo atributo
 
-    public Clientes(InetAddress enderecoCliente, int portaCliente, String username) {
+    public Clientes(InetAddress enderecoCliente, int portaCliente, String username, ObjectOutputStream saida) {
         this.enderecoCliente = enderecoCliente;
         this.portaCliente = portaCliente;
         this.username = username; 
+        this.saida = saida;
     }
 
     public InetAddress getEnderecoCliente() {
@@ -31,6 +34,14 @@ public class Clientes {
         Clientes endereco = (Clientes) o;
         return portaCliente == endereco.portaCliente &&
                 Objects.equals(enderecoCliente, endereco.enderecoCliente);
+    }
+
+    public void setSaida(ObjectOutputStream saida) {
+        this.saida = saida;
+    }
+
+    public ObjectOutputStream getSaida() {
+        return saida;
     }
 
     @Override
