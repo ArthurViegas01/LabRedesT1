@@ -31,7 +31,7 @@ public class ClienteGUI {
     }
 
     private void inicializarInterface() {
-        JFrame frame = new JFrame("Chat UDP - " + username);
+        JFrame frame = new JFrame("Chat TCP - " + username);
         frame.setSize(400, 300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
