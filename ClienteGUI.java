@@ -7,8 +7,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 
 public class ClienteGUI {
-    // Declarar uma constante para o tamanho máximo do arquivo
-    private static final int TAMANHO_MAX_ARQUIVO = 1024 * 1024; // 1MB
+    private static final int TAMANHO_MAX_ARQUIVO = 1024 * 1024; 
 
     private DatagramSocket socket;
     private InetAddress enderecoServidor;
@@ -21,7 +20,6 @@ public class ClienteGUI {
     private JTextField campoEnviar;
     private JList<String> listaUsuarios;
 
-    // Novos atributos para lidar com a seleção de arquivos
     private JButton btnSelecionarArquivo;
     private JButton btnEnviarArquivo;
     private File arquivoSelecionado;
@@ -80,7 +78,6 @@ public class ClienteGUI {
         });
         frame.add(campoEnviar, BorderLayout.SOUTH);
 
-        // Adicionar botão para selecionar arquivo
         btnSelecionarArquivo = new JButton("Selecionar Arquivo");
         btnSelecionarArquivo.addActionListener(new ActionListener() {
             @Override
@@ -89,7 +86,6 @@ public class ClienteGUI {
             }
         });
 
-        // Adicionar botão para enviar arquivo
         btnEnviarArquivo = new JButton("Enviar Arquivo");
         btnEnviarArquivo.addActionListener(new ActionListener() {
             @Override
@@ -132,16 +128,13 @@ public class ClienteGUI {
         }
 
         try {
-            // Verificar o tamanho do arquivo
             if (arquivoSelecionado.length() > TAMANHO_MAX_ARQUIVO) {
                 JOptionPane.showMessageDialog(frame, "O arquivo selecionado excede o tamanho máximo permitido.");
                 return;
             }
 
-            // Ler o conteúdo do arquivo
             byte[] conteudoArquivo = Files.readAllBytes(arquivoSelecionado.toPath());
 
-            // Criar e enviar mensagem contendo o arquivo
             Protocolo mensagemEnviar = new Protocolo('F', username, destinatario, conteudoArquivo);
             enviarMensagem(mensagemEnviar.toString());
         } catch (IOException e) {
@@ -162,6 +155,9 @@ public class ClienteGUI {
             socket.send(packet);
             if(protocolo.getTipo() == 'M'){
                 atualizarAreaMensagens("Mensagem enviada: " + protocolo.getMensagem());
+            }
+            if(protocolo.getTipo() == 'F'){
+                atualizarAreaMensagens("Arquivo enviado.");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -203,7 +199,6 @@ public class ClienteGUI {
                 }
             });
         } else if (protocolo.getTipo() == 'F') {
-            // Receber arquivo
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
@@ -218,8 +213,8 @@ public class ClienteGUI {
     }
 
     private void salvarArquivo(String origem, byte[] conteudoArquivo) {
-        String nomeArquivo = "arquivo_" + System.currentTimeMillis() + ".txt"; // Nome do arquivo com timestamp para evitar sobrescrição
-        String diretorioDestino = System.getProperty("user.dir"); // Diretório atual do usuário
+        String nomeArquivo = "arquivo_" + System.currentTimeMillis() + ".txt"; 
+        String diretorioDestino = System.getProperty("user.dir"); 
     
         File arquivo = new File(diretorioDestino, nomeArquivo);
         try (FileOutputStream fos = new FileOutputStream(arquivo)) {

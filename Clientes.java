@@ -4,7 +4,7 @@ import java.util.Objects;
 public class Clientes {
     private InetAddress enderecoCliente;
     private int portaCliente;
-    private String username; // novo atributo
+    private String username; 
 
     public Clientes(InetAddress enderecoCliente, int portaCliente, String username) {
         this.enderecoCliente = enderecoCliente;
