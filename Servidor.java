@@ -68,6 +68,17 @@ public class Servidor {
                         }
                             break;
 
+                        case 'F':
+                        for (Clientes c : clientes) {
+                            if (c.getUsername().equals(protocolo.getUsernameDestino())) {
+                                 ObjectOutputStream saidaDestino = c.getSaida();
+                                 resposta = new Protocolo('F', protocolo.getUsernameOrigem(), protocolo.getUsernameDestino(), protocolo.getConteudoArquivo());
+                                 saidaDestino.writeObject(resposta);
+                                  System.out.println("Arquivo enviado para " + resposta.getUsernameDestino());
+                                break;
+                            }
+                        }
+                             break;
                         case 'L':
                             StringBuilder usernames = new StringBuilder();
                             for (Clientes c : clientes) {
