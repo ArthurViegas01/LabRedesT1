@@ -2,21 +2,29 @@ public class Protocolo {
     private char tipo;
     private String usernameOrigem;
     private String usernameDestino;
-    private String mensagem;
+    private byte[] conteudoArquivo;
 
     public Protocolo(String protocolo) {
         tipo = protocolo.charAt(0);
         usernameOrigem = protocolo.substring(1, protocolo.indexOf('|'));
         usernameDestino = protocolo.substring(protocolo.indexOf('|') + 1, protocolo.indexOf('|', protocolo.indexOf('|') + 1));
-        mensagem = protocolo.substring(protocolo.indexOf('|', protocolo.indexOf('|') + 1) + 1);
+        conteudoArquivo = protocolo.substring(protocolo.indexOf('|', protocolo.indexOf('|') + 1) + 1).getBytes();
     }
-    public Protocolo(char tipo, String username, String usernameDestino, String mensagem) {
+
+    public Protocolo(char tipo, String usernameOrigem, String usernameDestino, String mensagem) {
         this.tipo = tipo;
-        this.usernameOrigem = username;
+        this.usernameOrigem = usernameOrigem;
         this.usernameDestino = usernameDestino;
-        this.mensagem = mensagem;
+        this.conteudoArquivo = mensagem.getBytes();
     }
-        
+
+    public Protocolo(char tipo, String usernameOrigem, String usernameDestino, byte[] conteudoArquivo) {
+        this.tipo = tipo;
+        this.usernameOrigem = usernameOrigem;
+        this.usernameDestino = usernameDestino;
+        this.conteudoArquivo = conteudoArquivo;
+    }
+
     public char getTipo() {
         return tipo;
     }
@@ -29,8 +37,12 @@ public class Protocolo {
         return usernameOrigem;
     }
 
-    public void setUsernameOrigem(String username) {
-        this.usernameOrigem = username;
+    public void setUsernameOrigem(String usernameOrigem) {
+        this.usernameOrigem = usernameOrigem;
+    }
+
+    public String getMensagem() {
+        return new String(conteudoArquivo);
     }
 
     public String getUsernameDestino() {
@@ -41,17 +53,17 @@ public class Protocolo {
         this.usernameDestino = usernameDestino;
     }
 
-    public String getMensagem() {
-        return mensagem;
+    public byte[] getConteudoArquivo() {
+        return conteudoArquivo;
     }
 
-    public void setMensagem(String mensagem) {
-        this.mensagem = mensagem;
+    public void setConteudoArquivo(byte[] conteudoArquivo) {
+        this.conteudoArquivo = conteudoArquivo;
     }
-    
+
     @Override
     public String toString() {
-        return tipo + usernameOrigem +"|"+ usernameDestino +"|" + mensagem;
-    }
 
+            return tipo + usernameOrigem +"|"+ usernameDestino +"|" + new String(conteudoArquivo);
+    }
 }

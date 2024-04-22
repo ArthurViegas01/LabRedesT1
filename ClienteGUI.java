@@ -3,9 +3,13 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 public class ClienteGUI {
+    // Declarar uma constante para o tamanho máximo do arquivo
+    private static final int TAMANHO_MAX_ARQUIVO = 1024 * 1024; // 1MB
+
     private DatagramSocket socket;
     private InetAddress enderecoServidor;
     private int portaServidor;
@@ -16,6 +20,12 @@ public class ClienteGUI {
     private JTextArea areaMensagens;
     private JTextField campoEnviar;
     private JList<String> listaUsuarios;
+
+    // Novos atributos para lidar com a seleção de arquivos
+    private JButton btnSelecionarArquivo;
+    private JButton btnEnviarArquivo;
+    private File arquivoSelecionado;
+    private JFrame frame;
 
     public ClienteGUI(String enderecoServidor, int portaServidor, int portaCliente, String username) {
         try {
@@ -28,7 +38,7 @@ public class ClienteGUI {
             e.printStackTrace();
         }
 
-        JFrame frame = new JFrame("Chat UDP - " + username);
+        frame = new JFrame("Chat UDP - " + username);
         frame.setSize(400, 300);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
@@ -70,6 +80,30 @@ public class ClienteGUI {
         });
         frame.add(campoEnviar, BorderLayout.SOUTH);
 
+        // Adicionar botão para selecionar arquivo
+        btnSelecionarArquivo = new JButton("Selecionar Arquivo");
+        btnSelecionarArquivo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                selecionarArquivo();
+            }
+        });
+
+        // Adicionar botão para enviar arquivo
+        btnEnviarArquivo = new JButton("Enviar Arquivo");
+        btnEnviarArquivo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String destinatario = listaUsuarios.getSelectedValue();
+                enviarArquivo(destinatario);
+            }
+        });
+
+        JPanel panelBotoes = new JPanel(new GridLayout(2, 1));
+        panelBotoes.add(btnSelecionarArquivo);
+        panelBotoes.add(btnEnviarArquivo);
+        frame.add(panelBotoes, BorderLayout.NORTH);
+
         frame.setVisible(true);
 
         Thread threadReceberMensagens = new Thread(() -> {
@@ -81,6 +115,38 @@ public class ClienteGUI {
             }
         });
         threadReceberMensagens.start();
+    }
+
+    private void selecionarArquivo() {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(null);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            arquivoSelecionado = fileChooser.getSelectedFile();
+        }
+    }
+
+    private void enviarArquivo(String destinatario) {
+        if (arquivoSelecionado == null) {
+            JOptionPane.showMessageDialog(frame, "Nenhum arquivo selecionado.");
+            return;
+        }
+
+        try {
+            // Verificar o tamanho do arquivo
+            if (arquivoSelecionado.length() > TAMANHO_MAX_ARQUIVO) {
+                JOptionPane.showMessageDialog(frame, "O arquivo selecionado excede o tamanho máximo permitido.");
+                return;
+            }
+
+            // Ler o conteúdo do arquivo
+            byte[] conteudoArquivo = Files.readAllBytes(arquivoSelecionado.toPath());
+
+            // Criar e enviar mensagem contendo o arquivo
+            Protocolo mensagemEnviar = new Protocolo('F', username, destinatario, conteudoArquivo);
+            enviarMensagem(mensagemEnviar.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void enviarMensagem(String mensagem, String destinatario) {
@@ -136,8 +202,31 @@ public class ClienteGUI {
                     atualizarAreaMensagens(mensagemFormatada);
                 }
             });
+        } else if (protocolo.getTipo() == 'F') {
+            // Receber arquivo
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    String mensagemFormatada = "Arquivo recebido de " + protocolo.getUsernameOrigem() + ".";
+                    atualizarAreaMensagens(mensagemFormatada);
+                    salvarArquivo(protocolo.getUsernameOrigem(), protocolo.getConteudoArquivo());
+                }
+            });
         } else {
             atualizarAreaMensagens("Mensagem recebida do servidor: " + mensagemRecebida);
+        }
+    }
+
+    private void salvarArquivo(String origem, byte[] conteudoArquivo) {
+        String nomeArquivo = "arquivo_" + System.currentTimeMillis() + ".txt"; // Nome do arquivo com timestamp para evitar sobrescrição
+        String diretorioDestino = System.getProperty("user.dir"); // Diretório atual do usuário
+    
+        File arquivo = new File(diretorioDestino, nomeArquivo);
+        try (FileOutputStream fos = new FileOutputStream(arquivo)) {
+            fos.write(conteudoArquivo);
+            atualizarAreaMensagens("Arquivo salvo como: " + arquivo.getAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -158,6 +247,7 @@ public class ClienteGUI {
     public void fecharConexao() {
         socket.close();
     }
+
     public static void main(String[] args) {
         if (args.length != 2) {
             System.out.println("Uso: java ClienteGUI <porta> <username>");

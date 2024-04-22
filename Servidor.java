@@ -33,30 +33,35 @@ public class Servidor {
 
                 switch (protocolo.getTipo()) {
                     case 'R':
-                    if (!clientes.contains(cliente)) {
-                        clientes.add(cliente);
-                    }
-                    System.out.println("Cliente registrado: " + cliente.getUsername());
-                    break;
+                        if (!clientes.contains(cliente)) {
+                            clientes.add(cliente);
+                        }
+                        System.out.println("Cliente registrado: " + cliente.getUsername());
+                        break;
 
                     case 'M':
-                    resposta = new Protocolo('M', protocolo.getUsernameOrigem(), protocolo.getUsernameDestino(), protocolo.getMensagem());
-                    enviarMensagem(resposta);
-                    System.out.println("Mensagem enviada para " + resposta.getUsernameDestino());
-                    break;
+                        resposta = new Protocolo('M', protocolo.getUsernameOrigem(), protocolo.getUsernameDestino(), protocolo.getMensagem());
+                        enviarMensagem(resposta);
+                        System.out.println("Mensagem enviada para " + resposta.getUsernameDestino());
+                        break;
 
                     case 'L':
-                    StringBuilder usernames = new StringBuilder();
-                    for (Clientes c : clientes){
-                        if(!c.getUsername().equals(protocolo.getUsernameOrigem())){
-                            usernames.append(c.getUsername()).append(",");;
+                        StringBuilder usernames = new StringBuilder();
+                        for (Clientes c : clientes){
+                            if(!c.getUsername().equals(protocolo.getUsernameOrigem())){
+                                usernames.append(c.getUsername()).append(",");
+                            }
                         }
-                    }
-                    resposta = new Protocolo('L', "servidor", protocolo.getUsernameOrigem(), usernames.toString());
-                    enviarMensagem(resposta);
-                    System.out.println("Lista de usuários enviada para " + resposta.getUsernameDestino());
+                        resposta = new Protocolo('L', "servidor", protocolo.getUsernameOrigem(), usernames.toString());
+                        enviarMensagem(resposta);
+                        System.out.println("Lista de usuários enviada para " + resposta.getUsernameDestino());
+                        break;
 
-                    break;
+                    case 'F':
+                        resposta = new Protocolo('F', protocolo.getUsernameOrigem(), protocolo.getUsernameDestino(), protocolo.getConteudoArquivo());
+                        enviarMensagem(resposta);
+                        System.out.println("Arquivo enviado para " + resposta.getUsernameDestino());
+                        break;
 
                     default:
                         break;
@@ -70,7 +75,6 @@ public class Servidor {
 
     private void enviarMensagem(Protocolo protocoloDestino) {
         try {
-
             byte[] buffer = protocoloDestino.toString().getBytes();
             Clientes cliente = null;
             for (Clientes c : clientes) {
@@ -84,7 +88,7 @@ public class Servidor {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, enderecoClienteDestino, portaClienteDestino);
             socket.send(packet);
             System.out.println("Mensagem enviada para " + cliente.getEnderecoCliente().toString().substring(1) + ":" + cliente.getPortaCliente());
-        
+
         } catch (IOException e) {
             e.printStackTrace();
         }
